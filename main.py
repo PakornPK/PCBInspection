@@ -29,7 +29,7 @@ def gen_graph():
     a.set_xlabel("X", fontsize=14)
 
     canvas = FigureCanvasTkAgg(fig, master=graph_win)
-    canvas.get_tk_widget().pack()
+    canvas.get_tk_widget().place(x = 100,y = 100)
     canvas.draw()
 
 
