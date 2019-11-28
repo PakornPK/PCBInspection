@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+from pypylon import pylon
 from tkinter import *
 from tkinter import ttk
 from PIL import ImageTk, Image
@@ -7,7 +9,8 @@ matplotlib.use('TkAgg')
 import numpy as np
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-
+import cv2 
+import time
 #command
 def gen_graph():
     graph_win = Toplevel(Gui)
@@ -29,7 +32,7 @@ def gen_graph():
     a.set_xlabel("X", fontsize=14)
 
     canvas = FigureCanvasTkAgg(fig, master=graph_win)
-    canvas.get_tk_widget().place(x = 100,y = 100)
+    canvas.get_tk_widget().pack()
     canvas.draw()
 
 
@@ -70,16 +73,16 @@ def setup_program():
     threshold_label.place(x = 200,y = 400)
 
     #entry 
-    work_order_name_entry = ttk.Entry(setup_frame,font=('Arial', 30),textvariable = WO)
+    work_order_name_entry = ttk.Entry(setup_frame,font=('Arial', 20),textvariable = WO)
     work_order_name_entry.place(x = 500, y= 100 )
 
-    part_name_entry = ttk.Entry(setup_frame,font = ('Aeial', 30),textvariable = PN)
+    part_name_entry = ttk.Entry(setup_frame,font = ('Aeial', 18),textvariable = PN)
     part_name_entry.place(x = 500, y = 200)
 
-    Quantity_entry = ttk.Entry(setup_frame,font=('Arial', 30),textvariable = QT)
+    Quantity_entry = ttk.Entry(setup_frame,font=('Arial', 20),textvariable = QT)
     Quantity_entry.place(x = 500, y= 300 )
 
-    threshold_entry = ttk.Entry(setup_frame,font=('Arial', 30),textvariable = TH)
+    threshold_entry = ttk.Entry(setup_frame,font=('Arial', 20),textvariable = TH)
     threshold_entry.place(x = 500, y= 400 )
 
 
@@ -94,6 +97,40 @@ def snap_cam():
     table_log.insert(INSERT,"image NG " + str(num) +'\n')
     fail_detail.config(text= str(NG_count))
 
+    # conecting to the first available camera
+    camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+
+    # Grabing Continusely (video) with minimal delay
+    camera.StartGrabbing(pylon.GrabStrategy_LatestImageOnly)
+    converter = pylon.ImageFormatConverter()
+
+    # converting to opencv bgr format
+    converter.OutputPixelFormat = pylon.PixelType_BGR8packed
+    converter.OutputBitAlignment = pylon.OutputBitAlignment_MsbAligned
+
+    #while camera.IsGrabbing():
+    grabResult = camera.RetrieveResult(5000, pylon.TimeoutHandling_ThrowException)
+
+    if grabResult.GrabSucceeded():
+        try:
+	    # Access the image data
+	    image = converter.Convert(grabResult)
+	    img = image.GetArray()
+	    cv2.imwrite('img-01.png',img)
+	    dis_img = ImageTk.PhotoImage(Image.open('img-01.png'))
+	    dis_label = Label(img_display)
+	    dis_label.configure(dis_img)
+	    dis_label.place(x=0, y=0)
+	except: 
+            print('error')
+	k = cv2.waitKey(1)
+	grabResult.Release()
+
+	    # Releasing the resource
+	    camera.StopGrabbing()
+
+    cv2.destroyAllWindows()
+
 def start_program():
     status_label.config(bg = "green2")
     status_label.config(text ="OK")    
@@ -106,10 +143,14 @@ def ok_setup_win():
     th_detail.config(text = TH.get())
     setup_win.destroy()
 
+
 Gui = Tk()
 Gui.title("PCB Inspection")
 screen_size = [1280,1024]
 Gui.attributes("-fullscreen", True)
+
+
+
 
 #Variable
 WO = StringVar()
